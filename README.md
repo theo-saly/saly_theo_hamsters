@@ -94,9 +94,9 @@ API accessible sur : http://127.0.0.1:8000
 |---------|-------|------|-------|-------------|
 | GET | `/api/hamsters` | - | Auth | Retourne tous les hamsters de l’utilisateur |
 | GET | `/api/hamsters/{id}` | - | Auth/Admin | Retourne un hamster spécifique |
-| POST | `/api/hamsters/reproduce` | `{ "idHamster1": xx, "idHamster2": yy }` | Auth | Crée un nouveau hamster |
-| POST | `/api/hamsters/{id}/feed` | - | Auth | Nourrit le hamster et débite le gold |
-| POST | `/api/hamsters/{id}/sell` | - | Auth | Vend le hamster pour 300 gold |
+| POST | `/api/hamsters/reproduce` | `{ "idHamster1": xx, "idHamster2": yy }` | Auth/Admin | Crée un nouveau hamster |
+| POST | `/api/hamsters/{id}/feed` | - | Auth/Admin | Nourrit le hamster et débite le gold |
+| POST | `/api/hamsters/{id}/sell` | - | Auth/Admin | Vend le hamster pour 300 gold |
 | POST | `/api/hamsters/sleep/{nbDays}` | - | Auth | Vieillit tous les hamsters de l’utilisateur |
 | PUT | `/api/hamsters/{id}/rename` | `{ "name": "nouveauNom" }` | Auth/Admin | Renomme un hamster |
 
