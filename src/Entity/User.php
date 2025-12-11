@@ -10,7 +10,6 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -18,33 +17,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 180)]
+    #[ORM\Column(length: 180, unique: true)]
     private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
+    #[ORM\Column(length: 255)]
+    private ?string $password = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $firstname = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $lastname = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTime $createdAt = null;
+
+    #[ORM\Column(type: 'json')]
     private array $roles = [];
 
     /**
-     * @var string The hashed password
+     * @var Collection<int, Vehicle>
      */
-    #[ORM\Column]
-    private ?string $password = null;
-
-    #[ORM\Column]
-    private ?int $gold = null;
+    #[ORM\OneToMany(targetEntity: Vehicle::class, mappedBy: 'user')]
+    private Collection $vehicles;
 
     /**
-     * @var Collection<int, Hamster>
+     * @var Collection<int, Notification>
      */
-    #[ORM\OneToMany(targetEntity: Hamster::class, mappedBy: 'owner', orphanRemoval: true)]
-    private Collection $hamsters;
+    #[ORM\OneToMany(targetEntity: Notification::class, mappedBy: 'user')]
+    private Collection $notifications;
 
     public function __construct()
     {
-        $this->hamsters = new ArrayCollection();
+        $this->vehicles = new ArrayCollection();
+        $this->notifications = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -64,41 +70,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->email;
-    }
-
-    /**
-     * @see UserInterface
-     */
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_unique($roles);
-    }
-
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -111,62 +82,126 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
-     */
-    public function __serialize(): array
+    public function getFirstname(): ?string
     {
-        $data = (array) $this;
-        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
-
-        return $data;
+        return $this->firstname;
     }
 
-    #[\Deprecated]
-    public function eraseCredentials(): void
+    public function setFirstname(?string $firstname): static
     {
-        // @deprecated, to be removed when upgrading to Symfony 8
+        $this->firstname = $firstname;
+
+        return $this;
     }
 
-    public function getGold(): ?int
+    public function getLastname(): ?string
     {
-        return $this->gold;
+        return $this->lastname;
     }
 
-    public function setGold(int $gold): static
+    public function setLastname(?string $lastname): static
     {
-        $this->gold = $gold;
+        $this->lastname = $lastname;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTime
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?\DateTime $createdAt): static
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }
 
     /**
-     * @return Collection<int, Hamster>
+     * @return Collection<int, Vehicle>
      */
-    public function getHamsters(): Collection
+    public function getVehicles(): Collection
     {
-        return $this->hamsters;
+        return $this->vehicles;
     }
 
-    public function addHamster(Hamster $hamster): static
+    public function addVehicle(Vehicle $vehicle): static
     {
-        if (!$this->hamsters->contains($hamster)) {
-            $this->hamsters->add($hamster);
-            $hamster->setOwner($this);
+        if (!$this->vehicles->contains($vehicle)) {
+            $this->vehicles->add($vehicle);
+            $vehicle->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeHamster(Hamster $hamster): static
+    public function removeVehicle(Vehicle $vehicle): static
     {
-        if ($this->hamsters->removeElement($hamster)) {
+        if ($this->vehicles->removeElement($vehicle)) {
             // set the owning side to null (unless already changed)
-            if ($hamster->getOwner() === $this) {
-                $hamster->setOwner(null);
+            if ($vehicle->getUser() === $this) {
+                $vehicle->setUser(null);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Notification>
+     */
+    public function getNotifications(): Collection
+    {
+        return $this->notifications;
+    }
+
+    public function addNotification(Notification $notification): static
+    {
+        if (!$this->notifications->contains($notification)) {
+            $this->notifications->add($notification);
+            $notification->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeNotification(Notification $notification): static
+    {
+        if ($this->notifications->removeElement($notification)) {
+            // set the owning side to null (unless already changed)
+            if ($notification->getUser() === $this) {
+                $notification->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    // Méthodes pour UserInterface
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        // Garantir que chaque utilisateur a au moins ROLE_USER
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function eraseCredentials(): void
+    {
+        // Si vous stockez des données sensibles temporaires sur l'utilisateur, effacez-les ici
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
     }
 }

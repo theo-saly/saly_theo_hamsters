@@ -2,39 +2,39 @@
 
 namespace App\Repository;
 
-use App\Entity\Hamster;
+use App\Entity\Notification;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Hamster>
+ * @extends ServiceEntityRepository<Notification>
  */
-class HamsterRepository extends ServiceEntityRepository
+class NotificationRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Hamster::class);
+        parent::__construct($registry, Notification::class);
     }
 
 //    /**
-//     * @return Hamster[] Returns an array of Hamster objects
+//     * @return Notification[] Returns an array of Notification objects
 //     */
 //    public function findByExampleField($value): array
 //    {
-//        return $this->createQueryBuilder('h')
-//            ->andWhere('h.exampleField = :val')
+//        return $this->createQueryBuilder('n')
+//            ->andWhere('n.exampleField = :val')
 //            ->setParameter('val', $value)
-//            ->orderBy('h.id', 'ASC')
+//            ->orderBy('n.id', 'ASC')
 //            ->setMaxResults(10)
 //            ->getQuery()
 //            ->getResult()
 //        ;
 //    }
 
-//    public function findOneBySomeField($value): ?Hamster
+//    public function findOneBySomeField($value): ?Notification
 //    {
-//        return $this->createQueryBuilder('h')
-//            ->andWhere('h.exampleField = :val')
+//        return $this->createQueryBuilder('n')
+//            ->andWhere('n.exampleField = :val')
 //            ->setParameter('val', $value)
 //            ->getQuery()
 //            ->getOneOrNullResult()

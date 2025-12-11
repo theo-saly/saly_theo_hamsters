@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Entity\Hamster;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -37,7 +36,17 @@ class UserController extends AbstractController
         $user->setEmail($data['email']);
         $user->setPassword($hasher->hashPassword($user, $data['password']));
         $user->setRoles(['ROLE_USER']);
-        $user->setGold(500);
+
+        // Champs optionnels
+        if (isset($data['firstname'])) {
+            $user->setFirstname($data['firstname']);
+        }
+        if (isset($data['lastname'])) {
+            $user->setLastname($data['lastname']);
+        }
+
+        // Date de création automatique
+        $user->setCreatedAt(new \DateTime());
 
         $errors = $validator->validate($user);
         if (count($errors) > 0) {
@@ -45,21 +54,6 @@ class UserController extends AbstractController
         }
 
         $em->persist($user);
-
-        $genres = ['m', 'm', 'f', 'f'];
-
-        foreach ($genres as $index => $g) {
-            $hamster = new Hamster();
-            $hamster->setName("Hamster" . ($index + 1));
-            $hamster->setAge(0);
-            $hamster->setHunger(100);
-            $hamster->setGenre($g);
-            $hamster->setActive(true);
-            $hamster->setOwner($user);
-
-            $em->persist($hamster);
-        }
-
         $em->flush();
 
         return $this->json([
@@ -67,14 +61,10 @@ class UserController extends AbstractController
             "user" => [
                 "id" => $user->getId(),
                 "email" => $user->getEmail(),
-                "gold" => $user->getGold(),
-                "roles" => $user->getRoles(),
-            ],
-            "hamsters" => array_map(fn($h) => [
-                "id" => $h->getId(),
-                "name" => $h->getName(),
-                "genre" => $h->getGenre(),
-            ], $user->getHamsters()->toArray())
+                "firstname" => $user->getFirstname(),
+                "lastname" => $user->getLastname(),
+                "createdAt" => $user->getCreatedAt()?->format('Y-m-d H:i:s')
+            ]
         ], 201);
     }
 
@@ -90,26 +80,17 @@ class UserController extends AbstractController
             return $this->json(['error' => 'Utilisateur non connecté'], 401);
         }
 
-        $hamsters = $user->getHamsters()->map(fn($h) => [
-            'id' => $h->getId(),
-            'name' => $h->getName(),
-            'genre' => $h->getGenre(),
-            'age' => $h->getAge(),
-            'hunger' => $h->getHunger(),
-            'active' => $h->isActive()
-        ])->toArray();
-
         return $this->json([
             'id' => $user->getId(),
             'email' => $user->getEmail(),
-            'gold' => $user->getGold(),
-            'roles' => $user->getRoles(),
-            'hamsters' => $hamsters
+            'firstname' => $user->getFirstname(),
+            'lastname' => $user->getLastname(),
+            'createdAt' => $user->getCreatedAt()?->format('Y-m-d H:i:s')
         ], 200);
     }
 
 
-    // Supprime l'utilisateur et ses hamsters
+    // Supprime l'utilisateur
     #[Route('/api/delete/{id}', name: 'api_delete_user', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN')]
     public function deleteUser(int $id, EntityManagerInterface $em): JsonResponse
@@ -120,9 +101,29 @@ class UserController extends AbstractController
             return $this->json(["error" => "Utilisateur introuvable"], 404);
         }
 
+        // Supprimer tous les véhicules de l'utilisateur
+        foreach ($user->getVehicles() as $vehicle) {
+            // Supprimer les maintenances du véhicule
+            foreach ($vehicle->getVehicleMaintenances() as $maintenance) {
+                $em->remove($maintenance);
+            }
+            // Supprimer les notifications du véhicule
+            foreach ($vehicle->getNotifications() as $notification) {
+                $em->remove($notification);
+            }
+            // Supprimer le véhicule
+            $em->remove($vehicle);
+        }
+
+        // Supprimer toutes les notifications de l'utilisateur
+        foreach ($user->getNotifications() as $notification) {
+            $em->remove($notification);
+        }
+
+        // Supprimer l'utilisateur
         $em->remove($user);
         $em->flush();
 
-        return $this->json(["message" => "Utilisateur supprimé avec tous ses hamsters"], 200);
+        return $this->json(["message" => "Utilisateur et ses données supprimés avec succès"], 200);
     }
 }
